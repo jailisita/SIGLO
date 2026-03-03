@@ -7,6 +7,7 @@ from .views import (
     custom_password_reset,
     admin_user_list,
     profile_view,
+    profile_edit,
 )
 from django.contrib.auth import views as auth_views
 
@@ -21,4 +22,5 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), name='password_reset_complete'),
     path('admin/users/', admin_user_list, name='admin_user_list'),
     path('profile/', profile_view, name='profile'),
+    path('profile/edit/', profile_edit, name='profile_edit'),
 ]

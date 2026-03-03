@@ -451,6 +451,7 @@
     {% endblock %}
 
     <!-- Chatbot Widget -->
+    {% if not user.is_authenticated or user.role != 'ADMIN' %}
     <div id="chatbot-widget" class="fixed-bottom p-3" style="z-index: 1050; right: 0; left: auto; width: 350px;">
         <div id="chat-window" class="card shadow-lg border-0 rounded-4 d-none overflow-hidden" style="height: 450px;">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
@@ -482,6 +483,7 @@
             <i class="bi bi-chat-dots-fill fs-4"></i>
         </button>
     </div>
+    {% endif %}
 
     <style>
         #chat-messages::-webkit-scrollbar {

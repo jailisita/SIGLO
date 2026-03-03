@@ -9,6 +9,7 @@ from USERS.views import admin_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.views.generic.edit import CreateView
@@ -85,10 +86,20 @@ def update_lots_status_for_purchase(purchase):
 
 @login_required
 def buy_lot(request, lot_id):
+    """
+    Inicia el proceso de compra de un lote.
+    Verifica que el usuario tenga sus datos personales completos.
+    """
+    if not request.user.is_profile_complete():
+        messages.warning(request, "Para realizar una compra, primero debes completar tus datos personales.")
+        return redirect(f"{reverse('profile_edit')}?next_lot={lot_id}")
+
     lot = get_object_or_404(Lot, id=lot_id, status='AVAILABLE')
     purchase = Purchase.objects.create(client=request.user, total_amount=lot.price)
     purchase.lots.add(lot)
     update_lots_status_for_purchase(purchase)
+    
+    messages.success(request, f"¡Felicidades! Has reservado el lote {lot.number}. Procede a registrar tu pago.")
     return redirect('purchase_detail', purchase_id=purchase.id)
 
 

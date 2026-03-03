@@ -15,7 +15,27 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from mailjet_rest import Client
 
-from .forms import EmailUserCreationForm
+from .forms import EmailUserCreationForm, UserProfileForm
+
+
+@login_required
+def profile_edit(request):
+    """Vista para que el usuario complete sus datos personales."""
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Tu perfil ha sido actualizado correctamente.")
+            
+            # Si venía de una compra, redirigir de vuelta al lote
+            next_lot = request.GET.get('next_lot')
+            if next_lot:
+                return redirect('buy_lot', lot_id=next_lot)
+            return redirect('dashboard')
+    else:
+        form = UserProfileForm(instance=request.user)
+    
+    return render(request, 'users/profile_edit.html', {'form': form})
 
 
 from django.contrib.auth.decorators import user_passes_test
@@ -241,6 +261,8 @@ def profile_view(request):
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
+            "document_number": user.document_number,
+            "phone_number": user.phone_number,
         }
     }
     return render(request, "users/profile.html", context)
