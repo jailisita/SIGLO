@@ -37,7 +37,7 @@
                         </td>
                         <td class="py-3 small">{{ user.email }}</td>
                         <td class="py-3 small">
-                            {% if user.role == "ADMIN" %}Administrador{% else %}Cliente{% endif %}
+                            {% if user.role == "ADMIN" %}Administrador{% elif user.role == "EXECUTIVE" %}Ejecutivo{% else %}Cliente{% endif %}
                         </td>
                         <td class="py-3 small">
                             {% if user.is_active %}

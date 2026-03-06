@@ -5,11 +5,10 @@ from decimal import Decimal
 from io import BytesIO
 
 from django.contrib import messages
-from USERS.views import admin_required
+from USERS.decorators import admin_required
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.conf import settings
-from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.views.generic.edit import CreateView
@@ -86,20 +85,16 @@ def update_lots_status_for_purchase(purchase):
 
 @login_required
 def buy_lot(request, lot_id):
-    """
-    Inicia el proceso de compra de un lote.
-    Verifica que el usuario tenga sus datos personales completos.
-    """
-    if not request.user.is_profile_complete():
-        messages.warning(request, "Para realizar una compra, primero debes completar tus datos personales.")
-        return redirect(f"{reverse('profile_edit')}?next_lot={lot_id}")
+    user = request.user
+    # Verificar si el usuario tiene sus datos completos
+    if not user.first_name or not user.last_name or not user.email:
+        messages.warning(request, "Por favor, completa tu perfil (nombre, apellido y correo) antes de realizar una compra.")
+        return redirect('profile')
 
     lot = get_object_or_404(Lot, id=lot_id, status='AVAILABLE')
     purchase = Purchase.objects.create(client=request.user, total_amount=lot.price)
     purchase.lots.add(lot)
     update_lots_status_for_purchase(purchase)
-    
-    messages.success(request, f"¡Felicidades! Has reservado el lote {lot.number}. Procede a registrar tu pago.")
     return redirect('purchase_detail', purchase_id=purchase.id)
 
 
@@ -188,35 +183,30 @@ def register_payment(request, purchase_id):
                 except Exception as e:
                     print(f"QR error: {e}")
 
-                # PDF
+                # PDF (Usando fpdf ya que está en requirements.txt)
                 try:
-                    from reportlab.lib.pagesizes import letter
-                    from reportlab.pdfgen import canvas
-                    attachment_text = (
-                        f"Comprobante de pago SIGLO\n\n"
-                        f"Compra: #{purchase.id}\n"
-                        f"Cliente: {purchase.client.get_full_name() or purchase.client.email}\n"
-                        f"Monto: ${payment.amount}\n"
-                        f"Fecha: {payment_date_str}\n"
-                        f"Saldo pendiente: ${purchase.balance()}"
-                    )
+                    from fpdf import FPDF
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", size=12)
+                    pdf.cell(200, 10, txt="Comprobante de pago SIGLO", ln=True, align='C')
+                    pdf.ln(10)
+                    pdf.cell(200, 10, txt=f"Compra: #{purchase.id}", ln=True)
+                    pdf.cell(200, 10, txt=f"Cliente: {purchase.client.get_full_name() or purchase.client.email}", ln=True)
+                    pdf.cell(200, 10, txt=f"Monto: ${payment.amount}", ln=True)
+                    pdf.cell(200, 10, txt=f"Fecha: {payment_date_str}", ln=True)
+                    pdf.cell(200, 10, txt=f"Saldo pendiente: ${purchase.balance()}", ln=True)
+                    
                     pdf_buffer = BytesIO()
-                    pdf = canvas.Canvas(pdf_buffer, pagesize=letter)
-                    textobject = pdf.beginText(40, 750)
-                    for line in attachment_text.split("\n"):
-                        textobject.textLine(line)
-                    pdf.drawText(textobject)
-                    pdf.showPage()
-                    pdf.save()
-                    pdf_b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-                    pdf_buffer.close()
+                    pdf_output = pdf.output(dest='S').encode('latin-1')
+                    pdf_b64 = base64.b64encode(pdf_output).decode()
                     attachments.append({
                         'Filename': f'comprobante_pago_{payment.id}.pdf',
                         'ContentType': 'application/pdf',
                         'Base64Content': pdf_b64,
                     })
                 except Exception as e:
-                    print(f"PDF error: {e}")
+                    print(f"PDF error (fpdf): {e}")
 
                 try:
                     result = send_mailjet_email(
@@ -239,7 +229,7 @@ def register_payment(request, purchase_id):
             else:
                 messages.success(request, "Pago registrado con éxito.")
 
-            update_lots_status_for_purchase(purchase)
+            # update_lots_status_for_purchase(purchase)  # Comentado para que solo el admin valide el estado del lote
 
         return redirect('purchase_detail', purchase_id=purchase.id)
 
@@ -272,6 +262,58 @@ def admin_purchase_list(request):
 def admin_payment_list(request):
     payments = Payment.objects.select_related("purchase", "purchase__client").all().order_by("-payment_date")
     return render(request, "sales/admin_payment_list.html", {"payments": payments})
+
+
+@admin_required
+def monthly_report(request):
+    from fpdf import FPDF
+    from django.utils import timezone
+    from django.http import HttpResponse
+    from decimal import Decimal
+
+    now = timezone.now()
+    month_name = now.strftime("%B %Y")
+    
+    # Obtener pagos validados del mes actual
+    payments = Payment.objects.filter(
+        payment_date__month=now.month,
+        payment_date__year=now.year,
+        is_validated=True
+    ).select_related('purchase', 'purchase__client')
+
+    total_amount = sum((p.amount for p in payments), Decimal("0"))
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=f"Reporte Mensual de Ventas - {month_name}", ln=True, align='C')
+    pdf.ln(10)
+
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(40, 10, "Fecha", 1)
+    pdf.cell(80, 10, "Cliente", 1)
+    pdf.cell(40, 10, "Compra #", 1)
+    pdf.cell(30, 10, "Monto", 1)
+    pdf.ln()
+
+    pdf.set_font("Arial", size=10)
+    for p in payments:
+        client_name = p.purchase.client.get_full_name() or p.purchase.client.email
+        pdf.cell(40, 10, p.payment_date.strftime("%d/%m/%Y"), 1)
+        pdf.cell(80, 10, str(client_name)[:40], 1)
+        pdf.cell(40, 10, f"#{p.purchase.id}", 1)
+        pdf.cell(30, 10, f"${p.amount}", 1)
+        pdf.ln()
+
+    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(160, 10, "TOTAL RECAUDADO:", 0)
+    pdf.cell(30, 10, f"${total_amount}", 0)
+
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_{now.strftime("%m_%Y")}.pdf"'
+    response.write(pdf.output(dest='S').encode('latin-1'))
+    return response
 
 
 @admin_required
@@ -384,4 +426,44 @@ def admin_payment_create(request):
 
 @admin_required
 def admin_payment_edit(request, payment_id):
-    return redirect("admin_payment_list")
+    payment = get_object_or_404(Payment, pk=payment_id)
+    purchases = Purchase.objects.select_related("client").all().order_by("-created_at")
+
+    if request.method == "POST":
+        data = request.POST
+        purchase = get_object_or_404(Purchase, pk=data.get("purchase"))
+        try:
+            amount = Decimal(str(data.get("amount") or "0"))
+        except Exception:
+            return render(request, "sales/admin_payment_form.html", {
+                "purchases": purchases,
+                "form": {"purchase": purchase.id, "amount": data.get("amount")},
+                "payment": payment,
+                "error": "Monto inválido.",
+            })
+        
+        # Al editar, sumamos el monto actual del pago al balance para validar el nuevo monto
+        current_balance = payment.purchase.balance() + payment.amount
+        if amount > current_balance:
+            return render(request, "sales/admin_payment_form.html", {
+                "purchases": purchases,
+                "form": {"purchase": purchase.id, "amount": data.get("amount")},
+                "payment": payment,
+                "error": f"El monto excede el saldo disponible (${current_balance}).",
+            })
+            
+        payment.purchase = purchase
+        payment.amount = amount
+        payment.save()
+        update_lots_status_for_purchase(purchase)
+        return redirect("admin_payment_list")
+
+    context = {
+        "purchases": purchases,
+        "form": {
+            "purchase": payment.purchase.id,
+            "amount": payment.amount,
+        },
+        "payment": payment,
+    }
+    return render(request, "sales/admin_payment_form.html", context)

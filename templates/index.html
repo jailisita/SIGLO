@@ -317,7 +317,7 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'lot_map' %}">Mapa Interactivo</a>
                     </li>
-                    {% if user.is_authenticated and user.role == 'ADMIN' %}
+                    {% if user.is_authenticated and user.role == 'ADMIN' or user.is_authenticated and user.role == 'EXECUTIVE' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'admin_pqrs_list' %}">Gestión PQRS</a>
                     </li>
@@ -362,6 +362,7 @@
     {% if messages %}
     <div class="container mt-3">
         {% for message in messages %}
+        {% if 'activated' not in message.tags %}
         <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} alert-dismissible fade show rounded-4 border-0 shadow-sm" role="alert">
             <div class="d-flex align-items-center">
                 {% if message.tags == 'success' %}
@@ -375,6 +376,7 @@
             </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+        {% endif %}
         {% endfor %}
     </div>
     {% endif %}
@@ -451,7 +453,7 @@
     {% endblock %}
 
     <!-- Chatbot Widget -->
-    {% if not user.is_authenticated or user.role != 'ADMIN' %}
+    {% if not user.is_authenticated or user.role == 'CLIENT' %}
     <div id="chatbot-widget" class="fixed-bottom p-3" style="z-index: 1050; right: 0; left: auto; width: 350px;">
         <div id="chat-window" class="card shadow-lg border-0 rounded-4 d-none overflow-hidden" style="height: 450px;">
             <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
@@ -483,7 +485,6 @@
             <i class="bi bi-chat-dots-fill fs-4"></i>
         </button>
     </div>
-    {% endif %}
 
     <style>
         #chat-messages::-webkit-scrollbar {
@@ -571,6 +572,7 @@
             container.scrollTop = container.scrollHeight;
         }
     </script>
+    {% endif %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>

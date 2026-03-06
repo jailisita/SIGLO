@@ -1,5 +1,6 @@
 from django.template.loader import render_to_string
-from USERS.views import admin_required, client_required, send_mailjet_email
+from USERS.views import send_mailjet_email
+from USERS.decorators import admin_required, client_required
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
