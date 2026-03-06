@@ -15,43 +15,9 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from mailjet_rest import Client
 
-from .forms import EmailUserCreationForm, UserProfileForm
-
-
-@login_required
-def profile_edit(request):
-    """Vista para que el usuario complete sus datos personales."""
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Tu perfil ha sido actualizado correctamente.")
-            
-            # Si venía de una compra, redirigir de vuelta al lote
-            next_lot = request.GET.get('next_lot')
-            if next_lot:
-                return redirect('buy_lot', lot_id=next_lot)
-            return redirect('dashboard')
-    else:
-        form = UserProfileForm(instance=request.user)
-    
-    return render(request, 'users/profile_edit.html', {'form': form})
-
-
-from django.contrib.auth.decorators import user_passes_test
-
-def admin_required(view_func):
-    return user_passes_test(
-        lambda u: u.is_authenticated and getattr(u, 'role', None) == 'ADMIN',
-        login_url='/login/'
-    )(view_func)
-
-
-def client_required(view_func):
-    return user_passes_test(
-        lambda u: u.is_authenticated and getattr(u, 'role', None) == 'CLIENT',
-        login_url='/login/'
-    )(view_func)
+from django.urls import reverse
+from .forms import EmailUserCreationForm
+from .decorators import admin_required, client_required
 
 
 logger = logging.getLogger(__name__)
@@ -102,9 +68,12 @@ def register_view(request):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
-        activation_link = request.build_absolute_uri(
-            f"/cuenta/activar/{uid}/{token}/"
-        )
+        
+        # Obtener el protocolo y dominio de la solicitud actual
+        protocol = 'https' if request.is_secure() else 'http'
+        domain = request.get_host()
+        
+        activation_link = f"{protocol}://{domain}{reverse('activate_account', kwargs={'uidb64': uid, 'token': token})}"
 
         subject = "Activa tu cuenta en SIGLO"
         context = {
@@ -171,7 +140,7 @@ def custom_password_reset(request):
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 reset_link = request.build_absolute_uri(
-                    f"/accounts/reset/{uid}/{token}/"
+                    reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
                 )
                 html_content = render_to_string('registration/password_reset_email.html', {
                     'user': user,
@@ -200,12 +169,8 @@ def custom_password_reset(request):
     return render(request, 'registration/password_reset_form.html', {'form': form})
 
 
-@login_required
+@admin_required
 def admin_user_list(request):
-    role = getattr(request.user, "role", "CLIENT")
-    if role != "ADMIN":
-        return redirect("dashboard")
-
     User = get_user_model()
     users = User.objects.all().order_by("date_joined")
     return render(request, "users/admin_user_list.html", {"users": users})
@@ -261,8 +226,6 @@ def profile_view(request):
             "email": user.email,
             "first_name": user.first_name,
             "last_name": user.last_name,
-            "document_number": user.document_number,
-            "phone_number": user.phone_number,
         }
     }
     return render(request, "users/profile.html", context)

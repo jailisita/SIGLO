@@ -139,6 +139,7 @@ def chat_api(request):
                     "REGLA CRÍTICA DE ENLACES: Al mostrar un enlace, asegúrate de cerrar siempre el paréntesis. "
                     "Ejemplo: [Ver en el Mapa](/lotes/mapa/?lot_id=1). "
                     "No respondas con JSON. Si no especifican filtros, busca los lotes disponibles generales. "
+                    "Si el usuario menciona números o precios, procésalos correctamente para llamar a search_lots o get_lot_details. "
                     "Sé persuasivo, profesional y siempre incluye enlaces al mapa o de compra cuando los obtengas."
                 )
             }
@@ -162,9 +163,9 @@ def chat_api(request):
             )
         except Exception as api_err:
             logger.error(f"Error de API Hugging Face: {str(api_err)}")
-            # Fallback simple
+            # Fallback a un modelo que soporte bien el español si falla el principal
             response = client.chat_completion(
-                model="microsoft/Phi-3-mini-4k-instruct",
+                model="Qwen/Qwen2.5-7B-Instruct",
                 messages=messages,
                 max_tokens=500
             )

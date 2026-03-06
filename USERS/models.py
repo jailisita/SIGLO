@@ -6,12 +6,17 @@ from django.contrib.auth.models import AbstractUser
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('ADMIN', 'Administrador'),
+        ('EXECUTIVE', 'Ejecutivo'),
         ('CLIENT', 'Cliente'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='CLIENT')
-    document_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número de Documento")
-    phone_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono")
 
-    def is_profile_complete(self):
-        """Verifica si el usuario ha completado sus datos básicos."""
-        return all([self.first_name, self.last_name, self.document_number])
+    def save(self, *args, **kwargs):
+        # Aseguramos que los administradores y ejecutivos puedan entrar al panel admin
+        if getattr(self, 'role', None) in ['ADMIN', 'EXECUTIVE']:
+            self.is_staff = True
+        elif getattr(self, 'is_superuser', False):
+            self.is_staff = True
+        else:
+            self.is_staff = False
+        super().save(*args, **kwargs)

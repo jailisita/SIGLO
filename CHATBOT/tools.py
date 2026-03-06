@@ -1,3 +1,4 @@
+import math
 from LOTES.models import Lot, Stage
 from django.db.models import Q
 from django.urls import reverse
@@ -6,6 +7,23 @@ def search_lots(price_min=None, price_max=None, status='AVAILABLE', stage_name=N
     """Filtra lotes por precio, estado y etapa."""
     lots = Lot.objects.all()
     
+    # Manejar valores de tipo "inf" o NaN que el LLM pueda enviar
+    def clean_price(price):
+        if price is None:
+            return None
+        try:
+            # Si es string "inf" o float('inf'), lo tratamos como None para no filtrar ese límite
+            if isinstance(price, (int, float)) and not math.isfinite(price):
+                return None
+            if isinstance(price, str) and price.lower() in ['inf', 'infinity', 'nan']:
+                return None
+            return float(price)
+        except (ValueError, TypeError):
+            return None
+
+    price_min = clean_price(price_min)
+    price_max = clean_price(price_max)
+
     if price_min is not None:
         lots = lots.filter(price__gte=price_min)
     if price_max is not None:
