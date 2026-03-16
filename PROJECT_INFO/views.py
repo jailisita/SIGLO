@@ -75,7 +75,19 @@ def dashboard(request):
         }
         return render(request, "project_info/client_dashboard.html", context)
 
+<<<<<<< HEAD
     stages = Stage.objects.all()
+=======
+    desired_names = ["Lanzamiento", "Preventa", "Construcción", "Entrega"]
+    stages_qs = Stage.objects.filter(name__in=desired_names)
+    stage_map = {s.name: s for s in stages_qs}
+    stages = [stage_map[name] for name in desired_names if name in stage_map]
+    
+    # Fallback if no stages found to prevent empty list
+    if not stages:
+        stages = Stage.objects.all()[:4]
+        
+>>>>>>> 8075e104d53d3e3e8143cd782142fc340434df23
     return render(request, "project_info/dashboard.html", {"stages": stages})
 
 
