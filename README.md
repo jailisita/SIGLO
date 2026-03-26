@@ -1,10 +1,7 @@
-<div align="center">
-
 # SIGLO
 **Sistema de Gestión de Lotes y Operaciones**
 
 Aplicación web desarrollada con Django para gestionar lotes, ventas, usuarios y atención al cliente.
-
 
 ---
 
@@ -22,12 +19,12 @@ Aplicación web desarrollada con Django para gestionar lotes, ventas, usuarios y
 
 ## Stack
 
- **Backend:** Python · Django 6.0 · Django REST Framework <br>
- **Base de datos:** PostgreSQL <br>
- **Almacenamiento:** Cloudinary <br>
- **Correo:** Mailjet <br>
- **Servidor:** Gunicorn + Whitenoise <br>
- **Extras:** JWT, QR codes, exportación PDF
+- **Backend:** Python · Django 6.0 · Django REST Framework
+- **Base de datos:** PostgreSQL
+- **Almacenamiento:** Cloudinary
+- **Correo:** Mailjet
+- **Servidor:** Gunicorn + Whitenoise
+- **Extras:** JWT, QR codes, exportación PDF/Excel/DOCX
 
 ---
 
@@ -69,10 +66,7 @@ El proyecto incluye un `Procfile` para plataformas como Heroku, Railway o Render
 ```
 web: gunicorn SIGLO.wsgi
 ```
-
 ---
 ## Para más información
 
 [Documentación (descargar pdf)](https://github.com/emilymontec/SIGLO/raw/main/documentation.pdf)
-
-</div>
