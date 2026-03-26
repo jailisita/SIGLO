@@ -67,6 +67,6 @@ El proyecto incluye un `Procfile` para plataformas como Heroku, Railway o Render
 web: gunicorn SIGLO.wsgi
 ```
 ---
-## Para más información
+## Para información más detallada
 
-[Documentación (descargar pdf)](https://github.com/emilymontec/SIGLO/raw/main/documentation.pdf)
+Consulte la documentación: [Documentación (descargar pdf)](https://github.com/emilymontec/SIGLO/raw/main/documentation.pdf)
