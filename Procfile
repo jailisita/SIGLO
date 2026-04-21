@@ -1,1 +1,1 @@
-web: gunicorn SIGLO.wsgi
+web: sh start.sh
