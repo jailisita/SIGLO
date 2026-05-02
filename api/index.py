@@ -1,19 +1,19 @@
 import os
 import sys
 
-# Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'SIGLO.settings')
 
+from django.core.handlers.wsgi import WSGIHandler
+
+application = WSGIHandler()
+
 def handler(request):
-    from django.core.handlers.wsgi import WSGIHandler
-    application = WSGIHandler()
-    
-    # Build the WSGI environment
     from io import BytesIO
-    body = request.get('body', '') or ''
+    from wsgiref.headers import Headers
     
+    body = request.get('body', '') or ''
     environ = {
         'REQUEST_METHOD': request.get('httpMethod', 'GET'),
         'PATH_INFO': request.get('path', '/'),
@@ -25,9 +25,6 @@ def handler(request):
         'wsgi.errors': sys.stderr,
         'wsgi.url_scheme': 'https',
     }
-    
-    # Run Django
-    from wsgiref.simple_server import make_environ_start_response
     
     output = BytesIO()
     def start_response(status, headers):
@@ -41,10 +38,8 @@ def handler(request):
     response_body = b"".join(result)
     response_text = output.getvalue() + response_body
     
-    # Parse response
     lines = response_text.split(b"\n")
-    status_line = lines[0].decode()
-    status_code = int(status_line.split()[1])
+    status_code = int(lines[0].decode().split()[1])
     
     headers = {}
     body_start = 0

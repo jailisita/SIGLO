@@ -4,8 +4,7 @@
       "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
-        "installCommand": "pip install -r requirements.txt",
-        "buildCommand": "python manage.py collectstatic --noinput"
+        "installCommand": "pip install django dj-database-url python-dotenv gunicorn whitenoise cloudinary"
       }
     }
   ],
