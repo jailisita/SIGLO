@@ -1,0 +1,18 @@
+{
+  "builds": [
+    {
+      "src": "requirements.txt",
+      "use": "python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "vercel_entry.py"
+    }
+  ],
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "DJANGO_SETTINGS_MODULE": "SIGLO.settings"
+  }
+}
