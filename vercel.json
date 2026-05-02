@@ -1,18 +1,22 @@
 {
   "builds": [
     {
-      "src": "requirements.txt",
-      "use": "python"
+      "src": "api/index.py",
+      "use": "@vercel/python",
+      "config": {
+        "installCommand": "pip install -r requirements.txt",
+        "buildCommand": "python manage.py collectstatic --noinput"
+      }
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "staticfiles/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "vercel_entry.py"
+      "dest": "api/index.py"
     }
-  ],
-  "env": {
-    "PYTHONUNBUFFERED": "1",
-    "DJANGO_SETTINGS_MODULE": "SIGLO.settings"
-  }
+  ]
 }
