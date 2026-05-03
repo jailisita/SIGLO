@@ -8,7 +8,9 @@ from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.views import LoginView
 from django.conf import settings
-from django.db import models
+# from django.db import models
+from SIGLO.internal_data import get_mock_queryset
+UserMock = get_mock_queryset('User')
 from django.shortcuts import render, redirect
 from django.template.loader import render_to_string
 from django.utils.encoding import force_bytes, force_str
@@ -45,12 +47,9 @@ def send_mailjet_email(subject, html_content, to_email, to_name=''):
 class CustomLoginView(LoginView):
     def form_invalid(self, form):
         username = self.request.POST.get('username')
-        User = get_user_model()
-        user = User.objects.filter(
-            models.Q(email__iexact=username) | models.Q(username__iexact=username)
-        ).first()
+        user = UserMock.filter(username__iexact=username).first() or UserMock.filter(email__iexact=username).first()
 
-        if user and not user.is_active:
+        if user and hasattr(user, 'is_active') and not user.is_active:
             form.is_unverified = True
             form._errors = {}
             return self.render_to_response(self.get_context_data(form=form))
@@ -109,9 +108,8 @@ def register_view(request):
 def activate_account(request, uidb64, token):
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
-        User = get_user_model()
-        user = User.objects.get(pk=uid)
-    except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+        user = UserMock.filter(pk=int(uid)).first()
+    except (TypeError, ValueError, OverflowError):
         user = None
 
     if user is not None and default_token_generator.check_token(user, token):
@@ -137,6 +135,7 @@ def custom_password_reset(request):
             users = User.objects.filter(email__iexact=email, is_active=True)
 
             for user in users:
+                from django.contrib.auth.tokens import default_token_generator
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = default_token_generator.make_token(user)
                 reset_link = request.build_absolute_uri(
@@ -171,8 +170,7 @@ def custom_password_reset(request):
 
 @admin_required
 def admin_user_list(request):
-    User = get_user_model()
-    users = User.objects.all().order_by("date_joined")
+    users = UserMock.all()
     return render(request, "users/admin_user_list.html", {"users": users})
 
 

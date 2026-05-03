@@ -14,8 +14,13 @@ from django.template.loader import render_to_string
 from django.views.generic.edit import CreateView
 from mailjet_rest import Client
 
-from LOTES.models import Lot
-from .models import Payment, Purchase
+# from LOTES.models import Lot
+# from .models import Payment, Purchase
+from SIGLO.internal_data import get_mock_queryset
+
+Lot = get_mock_queryset('Lot')
+Payment = get_mock_queryset('Payment')
+Purchase = get_mock_queryset('Purchase')
 
 logger = logging.getLogger(__name__)
 
@@ -100,18 +105,16 @@ def buy_lot(request, lot_id):
 
 @login_required
 def my_purchases_list(request):
-    purchases = (
-        Purchase.objects.filter(client=request.user)
-        .prefetch_related("lots")
-        .order_by("-created_at")
-    )
+    purchases = Purchase.filter(client=request.user)
     return render(request, "sales/my_purchases_list.html", {"purchases": purchases})
 
 
 @login_required
 def purchase_detail(request, purchase_id):
-    purchase = get_object_or_404(Purchase, id=purchase_id, client=request.user)
-    payments = purchase.payment_set.all().order_by('-payment_date')
+    purchase = Purchase.filter(id=purchase_id, client=request.user).first()
+    if not purchase:
+        return redirect('my_purchases_list')
+    payments = Payment.filter(purchase=purchase)
     return render(request, 'sales/purchase_detail.html', {'purchase': purchase, 'payments': payments})
 
 
@@ -254,13 +257,13 @@ def validate_payment(request, payment_id):
 
 @admin_required
 def admin_purchase_list(request):
-    purchases = Purchase.objects.select_related("client").prefetch_related("lots").all().order_by("-created_at")
+    purchases = Purchase.all()
     return render(request, "sales/admin_purchase_list.html", {"purchases": purchases})
 
 
 @admin_required
 def admin_payment_list(request):
-    payments = Payment.objects.select_related("purchase", "purchase__client").all().order_by("-payment_date")
+    payments = Payment.all()
     return render(request, "sales/admin_payment_list.html", {"payments": payments})
 
 

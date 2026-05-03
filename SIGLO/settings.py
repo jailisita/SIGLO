@@ -30,7 +30,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-4kmnid)yqhjrt*7^nny+b-o5^9sp%al$opup3wn#d4!=i$!a+t'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['*']
 
@@ -71,7 +71,15 @@ AUTH_USER_MODEL = 'USERS.User'
 
 PASSWORD_HASHERS = [
     'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
 ]
+
+AUTHENTICATION_BACKENDS = [
+    'SIGLO.mock_auth.MockBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
 
 LOGIN_URL = '/accounts/login/'         # o la ruta de tu login personalizado
 LOGIN_REDIRECT_URL = '/'               # a donde va después de iniciar sesión
@@ -111,25 +119,13 @@ WSGI_APPLICATION = 'SIGLO.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Use DATABASE_URL from environment variable (Supabase) or default to SQLite
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=True,  # Supabase requires SSL
-        )
+# Disconnected mode: Use in-memory SQLite for all environments
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": ":memory:",
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
-        }
-    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

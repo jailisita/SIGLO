@@ -8,7 +8,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
 
-from .models import PQRS
+# from .models import PQRS
+from SIGLO.internal_data import get_mock_queryset
+
+PQRS = get_mock_queryset('PQRS')
 
 
 class PQRSCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -63,13 +66,13 @@ class PQRSCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
 @client_required
 def my_pqrs_list(request):
-    items = PQRS.objects.filter(client=request.user).order_by('-id')
+    items = PQRS.filter(client=request.user)
     return render(request, 'pqrs/my_pqrs_list.html', {'items': items})
 
 
 @admin_required
 def admin_pqrs_list(request):
-    items = PQRS.objects.select_related("client").all().order_by("-id")
+    items = PQRS.all()
     return render(request, "pqrs/admin_pqrs_list.html", {"items": items})
 
 

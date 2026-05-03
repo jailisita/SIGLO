@@ -2,22 +2,27 @@ from USERS.decorators import admin_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Lot, Stage, LotImage
+# from .models import Lot, Stage, LotImage
+from SIGLO.internal_data import get_mock_queryset
+
+Lot = get_mock_queryset('Lot')
+Stage = get_mock_queryset('Stage')
+LotImage = get_mock_queryset('LotImage')
 
 
 def lot_list(request):
-    lots = Lot.objects.select_related("stage").all().order_by("code")
-    stages = Stage.objects.all().order_by("name")
+    lots = Lot.all() # order_by mocked
+    stages = Stage.all()
     return render(request, "lotes/list.html", {"lots": lots, "stages": stages})
 
 
 def map_view(request):
-    lots = Lot.objects.select_related("stage").all().order_by("code")
+    lots = Lot.all()
     return render(request, "lotes/map.html", {"lots": lots})
 
 
 def lot_list_api(request):
-    lots = Lot.objects.select_related("stage").all().order_by("code")
+    lots = Lot.all()
     data = []
     for lot in lots:
         data.append(
@@ -37,17 +42,19 @@ def lot_list_api(request):
 
 @admin_required
 def admin_lot_list(request):
-    from SALES.models import Purchase, Payment
-    lots = Lot.objects.select_related("stage").all().order_by("code")
+    # from SALES.models import Purchase, Payment
+    Purchase = get_mock_queryset('Purchase')
+    Payment = get_mock_queryset('Payment')
+    lots = Lot.all()
     
     # Attach recent payment info for each lot
     for lot in lots:
         if lot.status in ['RESERVED', 'SOLD']:
             # Find the most recent purchase that includes this lot
-            purchase = Purchase.objects.filter(lots=lot).order_by('-created_at').first()
+            purchase = Purchase.filter(lots=lot).first()
             if purchase:
                 # Get the most recent payment for this purchase
-                recent_payment = Payment.objects.filter(purchase=purchase).order_by('-payment_date', '-id').first()
+                recent_payment = Payment.filter(purchase=purchase).first()
                 lot.recent_payment = recent_payment
                 lot.associated_purchase = purchase
         else:
@@ -59,7 +66,7 @@ def admin_lot_list(request):
 
 @admin_required
 def admin_stage_list(request):
-    stages = Stage.objects.all().order_by("name")
+    stages = Stage.all()
     return render(request, "lotes/admin_stage_list.html", {"stages": stages})
 
 
