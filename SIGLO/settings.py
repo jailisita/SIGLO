@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 import os
-import dj_database_url
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -63,8 +62,6 @@ INSTALLED_APPS = [
     'PQRS',
     'PROJECT_INFO',
     'CHATBOT',
-    'cloudinary',
-    'cloudinary_storage',
 ]
 
 AUTH_USER_MODEL = 'USERS.User'
@@ -119,11 +116,10 @@ WSGI_APPLICATION = 'SIGLO.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-# Disconnected mode: Use in-memory SQLite for all environments
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
-        "NAME": ":memory:",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -181,17 +177,12 @@ EMAIL_HOST_PASSWORD = os.environ.get('MJ_APIKEY_PRIVATE')
 DEFAULT_FROM_EMAIL = 'siglo.sys.py@gmail.com'
 
 # MEDIA
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.environ.get("CLOUDINARY_NAME"),
-    'API_KEY': os.environ.get("CLOUDINARY_KEY"),
-    'API_SECRET': os.environ.get("CLOUDINARY_SECRET"),
-}
-
 MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.StaticFilesStorage",
